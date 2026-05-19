@@ -1,9 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { type Message } from "./types/type";
+import FormInput from "./components/ChatInput";
 
 function App() {
+  const initialForm = {
+    username: "",
+    text: "",
+  };
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [chat, setChat] = useState<Message[]>([]);
+  const [formChat, setFormChat] = useState({ ...initialForm });
+  const [alert, setAlert] = useState("");
+  const [messageType, setMessageType] = useState("");
   const port = "http://localhost:3000/api";
+
+  const showNotification = (msg: string, type: string = "success") => {
+    setAlert(msg);
+    setMessageType(type);
+    setTimeout(() => setAlert(""), 2000);
+  };
 
   const arrayMessages = async () => {
     try {
@@ -20,16 +35,46 @@ function App() {
       console.error("Error fetching messages", err);
     }
   };
+
+  const handleFormChat = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`${port}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formChat),
+      });
+      const chatData = await response.json().catch(() => response.text());
+      if (!response.ok) {
+        throw new Error(chatData || "Failed to send message");
+      }
+      showNotification("Message sent successfully!", "text-green-500");
+      await arrayMessages();
+
+      setFormChat({ ...initialForm });
+    } catch (err: unknown) {
+      {
+        const errorMessage =
+          err instanceof Error ? err.message : "An unknown error occurred";
+        console.error("Error send message", errorMessage);
+        showNotification(`Sending message failed: ${errorMessage}`, "error");
+      }
+    }
+  };
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chat]);
+
   if (!chat) return <p>Loading Messages...</p>;
   return (
     <main className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center justify-center p-4 antialiased">
-      <div className="w-full max-w-2xl bg-slate-800 rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden flex flex-col h-[600px]">
+      <div className="w-full max-w-4xl bg-slate-800 rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden flex flex-col h-[800px]">
         {/* Header Section */}
         <div className="bg-slate-800/80 backdrop-blur-md px-6 py-4 border-b border-slate-700 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-3 h-3 bg-emerald-400 rounded-full animate-pulse" />
             <h1 className="text-xl font-bold tracking-wide bg-gradient-to-r content-box from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-              Jamal Community Chat
+              Jamal's Community Chat
             </h1>
           </div>
           <span className="text-xs font-semibold px-2.5 py-1 bg-slate-700 text-slate-300 rounded-full border border-slate-600">
@@ -79,8 +124,16 @@ function App() {
                   </span>
                 </button>
               </div>
+              <div ref={messagesEndRef} />
             </div>
           ))}
+          <FormInput
+            formChat={formChat}
+            setFormChat={setFormChat}
+            onSubmit={handleFormChat}
+            alert={alert}
+            messageType={messageType}
+          />
         </div>
 
         {/* Button Actions */}
