@@ -38,6 +38,26 @@ app.get("/api/messages", (req, resp) => {
   resp.json(messages);
 });
 
+app.post("/api/messages", (req, res) => {
+  const { username, text } = req.body;
+  if (!username || !text) {
+    return res.status(400).json({
+      message: "Expected body to be a JSON object",
+    });
+  }
+  const messageId = Date.now();
+  const timestamp = new Date().toISOString();
+  messages.push({
+    id: messageId,
+    username: username,
+    text: text,
+    createdAt: timestamp,
+    likes: 0,
+    dislikes: 0,
+  });
+  res.json({ status: "success", message: "message added successfully" });
+});
+
 app.listen(port, () => {
   console.log(`The server is running on port: ${port}`);
 });
