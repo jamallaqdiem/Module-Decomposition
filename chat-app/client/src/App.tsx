@@ -13,12 +13,45 @@ function App() {
   const [alert, setAlert] = useState("");
   const [messageType, setMessageType] = useState("");
   const port = "http://localhost:3000/api";
+  const port2 = "ws://localhost:3000/api";
 
   const showNotification = (msg: string, type: string = "success") => {
     setAlert(msg);
     setMessageType(type);
     setTimeout(() => setAlert(""), 2000);
   };
+  useEffect(() => {
+    // Open the pipeline
+    const socket = new WebSocket(port2);
+    // log if it open
+    socket.onopen = () => {
+      console.log("Connected to the backend WebSocket conductor.");
+    };
+
+    socket.onmessage = (event) => {
+      const envelope = JSON.parse(event.data);
+      console.log("Broadcast received from server:", envelope);
+      // Check the envelop label
+      if (envelope.type === "NEW_MESSAGE") {
+        const freshMessage = envelope.payload;
+        // Update  Chat state array
+        setChat((prevChat) => {
+          // Safety check
+          const messageExists = prevChat.some(
+            (msg) => msg.id === freshMessage.id,
+          );
+          if (messageExists) return prevChat;
+
+          return [...prevChat, freshMessage];
+        });
+      }
+    };
+    // close the pipeline
+    return () => {
+      socket.close();
+      console.log("WebSocket connection cleanly closed.");
+    };
+  }, [port]);
 
   const arrayMessages = async () => {
     try {
