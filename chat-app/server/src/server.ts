@@ -1,4 +1,6 @@
 import express from "express";
+import http from "http";
+import { WebSocketServer } from "ws";
 import cors from "cors";
 import { type Message } from "./types/type.js";
 
@@ -30,9 +32,27 @@ const messages: Message[] = [
 ];
 
 const app = express();
+const server = http.createServer(app);
+const ws = new WebSocketServer({ server });
 const port = 3000;
 app.use(express.json());
 app.use(cors());
+
+ws.on("connection", (socket) => {
+  console.log("A new user connected via WebSockets!");
+
+  socket.on("close", () => {
+    console.log("A user disconnected.");
+  });
+});
+// Helper function to send data to every open browser tab.
+const broadcastMessage = (data: any) => {
+  ws.clients.forEach((client) => {
+    if (client.readyState === 1) {
+      client.send(JSON.stringify(data));
+    }
+  });
+};
 
 app.get("/api/messages", (req, resp) => {
   resp.json(messages);
@@ -47,17 +67,19 @@ app.post("/api/messages", (req, res) => {
   }
   const messageId = Date.now();
   const timestamp = new Date().toISOString();
-  messages.push({
+  const createMessages = {
     id: messageId,
     username: username,
     text: text,
     createdAt: timestamp,
     likes: 0,
     dislikes: 0,
-  });
+  };
+  messages.push(createMessages);
+  broadcastMessage({ type: "NEW_MESSAGE", payload: createMessages });
   res.json({ status: "success", message: "message added successfully" });
 });
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`The server is running on port: ${port}`);
 });
