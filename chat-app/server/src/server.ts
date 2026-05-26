@@ -80,6 +80,32 @@ app.post("/api/messages", (req, res) => {
   res.json({ status: "success", message: "message added successfully" });
 });
 
+app.patch("/api/messages/:id", (req, res) => {
+  const messageId = parseInt(req.params.id, 10);
+  const action = req.body.action;
+  if (!action || (action !== "like" && action !== "dislike")) {
+    return res
+      .status(400)
+      .json({ message: "Invalid action, expected likes or dislikes." });
+  }
+  const targetMessage = messages.find((message) => message.id === messageId);
+  if (!targetMessage) {
+    return res.status(404).send("Message Not Found");
+  }
+
+  if (action === "like") {
+    targetMessage.likes += 1;
+  } else if (action === "dislike") {
+    targetMessage.dislikes += 1;
+  }
+
+  broadcastMessage({ type: "UPDATE_REACTIONS", payload: targetMessage });
+  res.json({
+    status: "success",
+    message: "message updated likes/dislikes successfully",
+  });
+});
+
 server.listen(port, () => {
   console.log(`The server is running on port: ${port}`);
 });

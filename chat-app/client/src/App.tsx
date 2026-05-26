@@ -20,38 +20,6 @@ function App() {
     setMessageType(type);
     setTimeout(() => setAlert(""), 2000);
   };
-  useEffect(() => {
-    // Open the pipeline
-    const socket = new WebSocket(port2);
-    // log if it open
-    socket.onopen = () => {
-      console.log("Connected to the backend WebSocket conductor.");
-    };
-
-    socket.onmessage = (event) => {
-      const envelope = JSON.parse(event.data);
-      console.log("Broadcast received from server:", envelope);
-      // Check the envelop label
-      if (envelope.type === "NEW_MESSAGE") {
-        const freshMessage = envelope.payload;
-        // Update  Chat state array
-        setChat((prevChat) => {
-          // Safety check
-          const messageExists = prevChat.some(
-            (msg) => msg.id === freshMessage.id,
-          );
-          if (messageExists) return prevChat;
-
-          return [...prevChat, freshMessage];
-        });
-      }
-    };
-    // close the pipeline
-    return () => {
-      socket.close();
-      console.log("WebSocket connection cleanly closed.");
-    };
-  }, [port]);
 
   const arrayMessages = async () => {
     try {
@@ -68,6 +36,58 @@ function App() {
       console.error("Error fetching messages", err);
     }
   };
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      await arrayMessages();
+    };
+
+    loadInitialData();
+  }, []);
+
+  useEffect(() => {
+    // Open the pipeline
+    const socket = new WebSocket(port2);
+    // log if it open
+    socket.onopen = () => {
+      console.log("Connected to the backend WebSocket conductor.");
+    };
+
+    socket.onmessage = (event) => {
+      const envelope = JSON.parse(event.data);
+      console.log("Broadcast received from server:", envelope);
+      // Check the envelop label
+      if (envelope.type === "NEW_MESSAGE") {
+        const freshMessage = envelope.payload;
+        // Update Chat state array
+        setChat((prevChat) => {
+          // Safety check
+          const messageExists = prevChat.some(
+            (msg) => msg.id === freshMessage.id,
+          );
+          if (messageExists) return prevChat;
+
+          return [...prevChat, freshMessage];
+        });
+      }
+      if (envelope.type === "UPDATE_REACTIONS") {
+        const updatedMessage = envelope.payload;
+        setChat((prevChat) => {
+          return prevChat.map((message) => {
+            if (message.id === updatedMessage.id) {
+              return updatedMessage;
+            }
+            return message;
+          });
+        });
+      }
+    };
+    // close the pipeline
+    return () => {
+      socket.close();
+      console.log("WebSocket connection cleanly closed.");
+    };
+  }, [port2]);
 
   const handleFormChat = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -86,14 +106,38 @@ function App() {
 
       setFormChat({ ...initialForm });
     } catch (err: unknown) {
-      {
-        const errorMessage =
-          err instanceof Error ? err.message : "An unknown error occurred";
-        console.error("Error send message", errorMessage);
-        showNotification(`Sending message failed: ${errorMessage}`, "error");
-      }
+      const errorMessage =
+        err instanceof Error ? err.message : "An unknown error occurred";
+      console.error("Error send message", errorMessage);
+      showNotification(`Sending message failed: ${errorMessage}`, "error");
     }
   };
+
+  const handleReaction = async (
+    messageId: number,
+    action: "like" | "dislike",
+  ) => {
+    try {
+      const response = await fetch(`${port}/messages/${messageId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ message: "Failed to send reaction" }));
+        throw new Error(errorData.message);
+      }
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unknown error occurred";
+      console.error("Error updating reaction:", errorMessage);
+      showNotification(`Reaction failed: ${errorMessage}`, "error");
+    }
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat]);
@@ -144,22 +188,28 @@ function App() {
 
               {/* Like/Dislike Buttons */}
               <div className="flex items-center space-x-2 mt-3 opacity-80 group-hover:opacity-100 transition-opacity duration-200">
-                <button className="flex items-center space-x-1.5 px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600/50 rounded-lg transition-colors duration-150 active:scale-95">
+                <button
+                  onClick={() => handleReaction(message.id, "like")}
+                  className="flex items-center space-x-1.5 px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600/50 rounded-lg transition-colors duration-150 active:scale-95"
+                >
                   <span>👍</span>
                   <span className="font-medium text-slate-200">
                     {message.likes}
                   </span>
                 </button>
-                <button className="flex items-center space-x-1.5 px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600/50 rounded-lg transition-colors duration-150 active:scale-95">
+                <button
+                  onClick={() => handleReaction(message.id, "dislike")}
+                  className="flex items-center space-x-1.5 px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600/50 rounded-lg transition-colors duration-150 active:scale-95"
+                >
                   <span>👎</span>
                   <span className="font-medium text-slate-200">
                     {message.dislikes}
                   </span>
                 </button>
               </div>
-              <div ref={messagesEndRef} />
             </div>
           ))}
+          <div ref={messagesEndRef} />
           <FormInput
             formChat={formChat}
             setFormChat={setFormChat}
