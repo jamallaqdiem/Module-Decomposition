@@ -3,8 +3,9 @@ import { type Message } from "./types/type";
 import FormInput from "./components/ChatInput";
 
 function App() {
+  const savedUsername = localStorage.getItem("chat_username") || "";
   const initialForm = {
-    username: "",
+    username: savedUsername,
     text: "",
   };
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -91,6 +92,10 @@ function App() {
 
   const handleFormChat = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!formChat.username.trim() || !formChat.text.trim()) {
+      showNotification("Username and message cannot be empty!", "text-red-500");
+      return;
+    }
     try {
       const response = await fetch(`${port}/messages`, {
         method: "POST",
@@ -103,8 +108,8 @@ function App() {
       }
       showNotification("Message sent successfully!", "text-green-500");
       await arrayMessages();
-
-      setFormChat({ ...initialForm });
+      localStorage.setItem("chat_username", formChat.username);
+      setFormChat({ username: formChat.username, text: "" });
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "An unknown error occurred";
@@ -216,6 +221,7 @@ function App() {
             onSubmit={handleFormChat}
             alert={alert}
             messageType={messageType}
+            isNameSaved={!!localStorage.getItem("chat_username")}
           />
         </div>
 

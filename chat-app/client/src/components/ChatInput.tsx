@@ -9,6 +9,7 @@ interface FormInputProps {
   >;
   alert: string;
   messageType: string;
+  isNameSaved: boolean;
 }
 
 const FormInput = ({
@@ -17,6 +18,7 @@ const FormInput = ({
   setFormChat,
   messageType,
   alert,
+  isNameSaved,
 }: FormInputProps) => {
   return (
     <div className="w-full p-4 border-t border-slate-700 bg-slate-900">
@@ -28,16 +30,27 @@ const FormInput = ({
             {alert}
           </p>
         )}
-        <input
-          type="text"
-          placeholder="Enter your name.."
-          required
-          className="w-1/4 max-w-[150px] px-3 py-2 bg-slate-800 text-slate-100 border border-slate-600 rounded-lg outline-none focus:border-indigo-500 transition-all text-sm"
-          value={formChat.username}
-          onChange={(e) =>
-            setFormChat({ ...formChat, username: e.target.value })
-          }
-        />
+        {!isNameSaved ? (
+          <input
+            type="text"
+            placeholder="Enter your name.."
+            required
+            className="w-1/4 max-w-[150px] px-3 py-2 bg-slate-800 text-slate-100 border border-slate-600 rounded-lg outline-none focus:border-indigo-500 transition-all text-sm"
+            value={formChat.username}
+            onChange={(e) =>
+              setFormChat({ ...formChat, username: e.target.value })
+            }
+          />
+        ) : (
+          <div className="w-1/4 max-w-[150px] flex items-center space-x-1.5 text-xs text-slate-400 font-semibold px-2 py-2 bg-slate-800/60 border border-slate-700/50 rounded-lg truncate select-none">
+            <span className="w-2 h-2 min-w-[8px] bg-emerald-400 rounded-full animate-pulse" />
+            <span className="truncate">
+              User:{" "}
+              <strong className="text-emerald-400">{formChat.username}</strong>
+            </span>
+          </div>
+        )}
+
         <input
           type="text"
           placeholder="Start typing a message..."
