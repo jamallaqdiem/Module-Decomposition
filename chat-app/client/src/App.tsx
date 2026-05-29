@@ -13,8 +13,8 @@ function App() {
   const [formChat, setFormChat] = useState({ ...initialForm });
   const [alert, setAlert] = useState("");
   const [messageType, setMessageType] = useState("");
-  const port = "https://backendchatapp.hosting.codeyourfuture.io/api";
-  const port2 = "wss://backendchatapp.hosting.codeyourfuture.io";
+  const backend_url = "https://backendchatapp.hosting.codeyourfuture.io/api";
+  const socket_url = "wss://backendchatapp.hosting.codeyourfuture.io";
 
   const showNotification = (msg: string, type: string = "success") => {
     setAlert(msg);
@@ -24,7 +24,7 @@ function App() {
 
   const arrayMessages = async () => {
     try {
-      const response = await fetch(`${port}/messages`, {
+      const response = await fetch(`${backend_url}/messages`, {
         method: "GET",
       });
 
@@ -48,7 +48,7 @@ function App() {
 
   useEffect(() => {
     // Open the pipeline
-    const socket = new WebSocket(port2);
+    const socket = new WebSocket(socket_url);
     // log if it open
     socket.onopen = () => {
       console.log("Connected to the backend WebSocket conductor.");
@@ -88,7 +88,7 @@ function App() {
       socket.close();
       console.log("WebSocket connection cleanly closed.");
     };
-  }, [port2]);
+  }, [socket_url]);
 
   const handleFormChat = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -97,7 +97,7 @@ function App() {
       return;
     }
     try {
-      const response = await fetch(`${port}/messages`, {
+      const response = await fetch(`${backend_url}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formChat),
@@ -123,7 +123,7 @@ function App() {
     action: "like" | "dislike",
   ) => {
     try {
-      const response = await fetch(`${port}/messages/${messageId}`, {
+      const response = await fetch(`${backend_url}/messages/${messageId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
