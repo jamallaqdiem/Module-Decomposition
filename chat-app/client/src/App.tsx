@@ -13,8 +13,8 @@ function App() {
   const [formChat, setFormChat] = useState({ ...initialForm });
   const [alert, setAlert] = useState("");
   const [messageType, setMessageType] = useState("");
-  const port = "https://h1rnrhuug466tlnv24gymmi1.hosting.codeyourfuture.io/api";
-  const port2 = "wss://h1rnrhuug466tlnv24gymmi1.hosting.codeyourfuture.io/api";
+  const port = "https://backendchatapp.hosting.codeyourfuture.io/api";
+  const port2 = "wss://backendchatapp.hosting.codeyourfuture.io";
 
   const showNotification = (msg: string, type: string = "success") => {
     setAlert(msg);
