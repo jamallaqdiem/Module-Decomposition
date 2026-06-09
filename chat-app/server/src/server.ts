@@ -2,6 +2,7 @@ import express from "express";
 import http from "http";
 import { WebSocketServer } from "ws";
 import cors from "cors";
+import { randomUUID } from "crypto";
 import { type Message } from "./types/type.js";
 
 const messages: Message[] = [
@@ -59,13 +60,16 @@ app.get("/api/messages", (req, resp) => {
 });
 
 app.post("/api/messages", (req, res) => {
+  if (!req.body || typeof req.body !== "object") {
+    res.status(400).send("Expected the body to be a json object");
+  }
   const { username, text } = req.body;
   if (!username || !text) {
     return res.status(400).json({
-      message: "Expected body to be a JSON object",
+      message: "Username and Text are required",
     });
   }
-  const messageId = Date.now();
+  const messageId = randomUUID();
   const timestamp = new Date().toISOString();
   const createMessages = {
     id: messageId,
